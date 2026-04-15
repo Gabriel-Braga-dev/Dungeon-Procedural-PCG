@@ -26,5 +26,26 @@ EXEMPLO DE MAPAS 2:
   <img src="https://github.com/user-attachments/assets/b142cf15-1c7a-4ed4-bd80-81ecb1919ddb" alt="Map2inGame" width="45%">
 </p>
 
+## 🎮 Como Executar e Jogar
 
+Para testar o gerador e o Agente Avaliador na sua máquina, siga os passos abaixo:
+
+1. **Faça o Download do Projeto:**
+   Clone este repositório ou baixe o código em formato ZIP e extraia na sua máquina.
+
+2. **Instale as Dependências:**
+   Abra o terminal na pasta raiz do projeto e instale o Pygame executando o comando:
+   `pip install -r requirements.txt`
+
+3. **Inicie o Jogo:**
+   Ainda no terminal, execute o arquivo principal:
+   `python main.py`
+
+4. **Controles:**
+   - Utilize o **Mouse** para interagir com a interface no Modo Criativo.
+   - Siga as instruções na tela para gerar a topologia, distribuir a população e validar com a IA.
+     
+   - No modo jogo pode usar tanto(WASD) quanto as setas para movimentar o personagem.
+   - Aperte P para pausar o jogo, caso esteja pausado o esc te colocará para criar um novo mapa
+   - Durante o jogo se apertar N o jogo avançará de nível automaticamente
 
