@@ -48,4 +48,5 @@ Para testar o gerador e o Agente Avaliador na sua máquina, siga os passos abaix
    - No modo jogo pode usar tanto(WASD) quanto as setas para movimentar o personagem.
    - Aperte P para pausar o jogo, caso esteja pausado o esc te colocará para criar um novo mapa
    - Durante o jogo se apertar N o jogo avançará de nível automaticamente
+   - Caso fique sem ter o que fazer aperte P e reinicie, uma hora consiguira resolver o desafio
 
