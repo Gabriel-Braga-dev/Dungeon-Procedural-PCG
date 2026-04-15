@@ -11,7 +11,20 @@
    
   A validação do mapa não é um problema de rota (pathfinding comum), mas de Estado de Jogo, em que o agente precisa considerar a posição, o HP atual, o inventário de chaves e os itens restantes. Não foi utilizado uma busca em largura (BFS), pois sofreria com uma explosão combinatória, gerando exaustão de memória. Diante disso, foi implementado o A* com uma Heurística de Busca Gulosa baseada na Distância Manhattan. A IA prioriza o item coletável mais próximo, e, para isso, o agente ignora a saída até que o contador de itens chegue a zero, caso encontre uma porta sem chaves, o caminho é podado.
 
-<img width="271" height="270" alt="Map2inGame" src="https://github.com/user-attachments/assets/b142cf15-1c7a-4ed4-bd80-81ecb1919ddb" />
-<img width="270" height="274" alt="Map1inGame" src="https://github.com/user-attachments/assets/b5127a59-839c-483f-bece-4ab80fb80f57" />
-<img width="150" height="151" alt="PreviewMap2" src="https://github.com/user-attachments/assets/6eed3275-d649-4c4d-bef2-5a0a3514b9e1" />
-<img width="156" height="150" alt="PreviewMap1" src="https://github.com/user-attachments/assets/45cd4f34-f5ba-4e14-a7a6-d1fcba899213" />
+
+EXEMPLO DE MAPAS 1:
+
+<p align="center">
+   <img src="https://github.com/user-attachments/assets/45cd4f34-f5ba-4e14-a7a6-d1fcba899213"alt="PreviewMap1" width="45%">
+  <img src="https://github.com/user-attachments/assets/b5127a59-839c-483f-bece-4ab80fb80f57" alt="Map1inGame"  width="45%">
+</p>
+
+EXEMPLO DE MAPAS 2:
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/6eed3275-d649-4c4d-bef2-5a0a3514b9e1" alt="PreviewMap2" width="45%">
+  <img src="https://github.com/user-attachments/assets/b142cf15-1c7a-4ed4-bd80-81ecb1919ddb" alt="Map2inGame" width="45%">
+</p>
+
+
+
