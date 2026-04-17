@@ -1,15 +1,13 @@
 # src/factory.py
 from src.sprite_loader import SpriteLoader
 from .rules import MechanicsRules
+from src.systems import*
 from src.components import (
     Position, Renderable, TagPlayer, LevelObjectives,  
     Health, MovementStats, GameStatus,
     Inventory, Interactable, IntencaoMovimento, Tiles
     )
-from src.systems import (
-    RenderSystem, MovementSystem, GameFlowSystem,
-    InteractionHandler, HUDSystem, PlayerControlSystem
-    )
+
 
 
 class EntityFactory:
@@ -26,7 +24,7 @@ class EntityFactory:
         self.spawn_map(shared_data['grid'])
         self.spawn_game_objects(layout_aprovado, shared_data['h_pos'], shared_data['e_pos'])
 
-    def preparar_sistemas(self, shared_data, screen, ui_manager):
+    def preparar_sistemas(self,  ui_manager,  screen, shared_data):
         world = self.world
         
         handler = InteractionHandler(world)
@@ -47,19 +45,6 @@ class EntityFactory:
         world.add_processor(flow_sys)
         
         return move_sys, render_sys
-
-    def _build_entity(self, pos, sprite_name, *components):
-
-        image = self.loader.get_sprite(sprite_name)
-        ent = self.world.create_entity()
-
-        self.world.add_component(ent, Position(*pos))
-        self.world.add_component(ent, Renderable(image))
-
-        for comp in components:
-            if comp is not None:
-                self.world.add_component(ent, comp)
-        return ent
 
     def spawn_map(self, grid):
         height, width = len(grid), len(grid[0])
@@ -96,3 +81,16 @@ class EntityFactory:
 
         for pos, nome_sprite in layout_aprovado.items():
             self._build_entity(pos, nome_sprite, Interactable(nome_sprite))
+
+    def _build_entity(self, pos, sprite_name, *components):
+
+        image = self.loader.get_sprite(sprite_name)
+        ent = self.world.create_entity()
+
+        self.world.add_component(ent, Position(*pos))
+        self.world.add_component(ent, Renderable(image))
+
+        for comp in components:
+            if comp is not None:
+                self.world.add_component(ent, comp)
+        return ent

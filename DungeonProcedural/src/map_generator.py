@@ -16,7 +16,7 @@ class Room:
 
     def intersects(self, other, margin=1):
         # Métrica de Colisão: Garante que as salas não se toquem, 
-        # mantendo a topologia clara e evitando caminhos paralelos indesejados.
+        # mantendo a topologia clara e evitando paths paralelos indesejados.
         return (self.x - margin < other.x + other.w + margin and
                 self.x + self.w + margin > other.x - margin and
                 self.y - margin < other.y + other.h + margin and
@@ -32,11 +32,11 @@ class MapGenerator:
     Algoritmo construtivo baseado em Carving direcional (Spanning Tree).
     Garante matematicamente a ausência de atalhos (loops) e a criação de gargalos obrigatórios.
     """
-    def __init__(self, width, height, num_salas, tam_max_sala):
+    def __init__(self, width, height, num_rooms, tam_max_rooms):
         self.width = width
         self.height = height
-        self.num_salas = num_salas
-        self.tam_max_sala = tam_max_sala
+        self.num_rooms = num_rooms
+        self.tam_max_rooms = tam_max_rooms
         self.grid = [[Tiles.WALL for _ in range(self.width)] for _ in range(self.height)]
         self.rooms = []
         self.corridors = []
@@ -47,7 +47,7 @@ class MapGenerator:
         self.rooms.append(start_room)
         
         tentativas_totais = 0
-        while len(self.rooms) < self.num_salas and tentativas_totais < 1000:
+        while len(self.rooms) < self.num_rooms and tentativas_totais < 1000:
             self._grow()
             tentativas_totais += 1
             
@@ -72,38 +72,38 @@ class MapGenerator:
         room = random.choice(self.rooms)
         dx, dy = random.choice([(0, -1), (0, 1), (-1, 0), (1, 0)])
         corr_len = random.randint(2, 6) 
-        rw = random.randint(3, self.tam_max_sala)
-        rh = random.randint(3, self.tam_max_sala) 
+        rw = random.randint(3, self.tam_max_rooms)
+        rh = random.randint(3, self.tam_max_rooms) 
         
-        cx, cy = self._calcular_inicio_corredor(room, dx, dy)
+        cx, cy = self._calcular_inicio_corridor(room, dx, dy)
         
-        sucesso_corredor, caminho = self._tracar_corredor(cx, cy, dx, dy, corr_len)
-        if not sucesso_corredor: return
+        sucess_corridor, path_corridor  = self._tracar_corridor(cx, cy, dx, dy, corr_len)
+        if not sucess_corridor: return
             
-        nova_sala = self._criar_sala_no_fim(caminho[-1][0], caminho[-1][1], dx, dy, rw, rh)
+        new_room = self._criar_sala_no_fim(path_corridor [-1][0], path_corridor [-1][1], dx, dy, rw, rh)
         
         # Teste de Look-ahead: Só constrói a sala se não colidir com o mapa existente.
         # É isso que previne os atalhos (loops)!
-        if not self._sala_eh_valida(nova_sala): return
+        if not self._sala_eh_valida(new_room): return
             
-        self._conectar_e_construir(room, nova_sala, caminho)
+        self._conectar_e_construir(room, new_room, path_corridor )
 
     # --- Métodos de Apoio ao Crescimento ---
 
-    def _calcular_inicio_corredor(self, room, dx, dy):
-        """Define onde o corredor vai 'nascer' nas bordas da sala."""
+    def _calcular_inicio_corridor(self, room, dx, dy):
+        """Define onde o corridor vai 'nascer' nas bordas da sala."""
         if dx == 1:   return room.x + room.w, random.randint(room.y, room.y + room.h - 1)
         elif dx == -1: return room.x - 1, random.randint(room.y, room.y + room.h - 1)
         elif dy == 1:  return random.randint(room.x, room.x + room.w - 1), room.y + room.h
         else:          return random.randint(room.x, room.x + room.w - 1), room.y - 1
 
-    def _tracar_corredor(self, start_x, start_y, dx, dy, length):
+    def _tracar_corridor(self, start_x, start_y, dx, dy, length):
         """Tenta "andar" pelo grid. Retorna (Sucesso, Lista de Posições)."""
-        caminho = []
+        path_corridor  = []
         curr_x, curr_y = start_x, start_y
         
         for _ in range(length):
-            # Guard Clauses de Validação do Caminho
+            # Guard Clauses de Validação do path_corridor 
             if not (1 < curr_x < self.width - 2 and 1 < curr_y < self.height - 2): 
                 return False, []
             
@@ -115,11 +115,11 @@ class MapGenerator:
                       if self.grid[curr_y+ay][curr_x+ax] == Tiles.FLOOR)
             if adj > 1: return False, []
             
-            caminho.append((curr_x, curr_y))
+            path_corridor .append((curr_x, curr_y))
             curr_x += dx
             curr_y += dy
             
-        return True, caminho
+        return True, path_corridor 
 
     def _criar_sala_no_fim(self, cx, cy, dx, dy, rw, rh):
         """Faz a matemática para posicionar a sala colada no fim do corredor."""
@@ -133,29 +133,29 @@ class MapGenerator:
             
         return Room(rx, ry, rw, rh)
 
-    def _sala_eh_valida(self, nova_sala):
+    def _sala_eh_valida(self, new_room):
         """Garante que não fica fora do mapa nem por cima de outra."""
-        if not (1 <= nova_sala.x and nova_sala.x + nova_sala.w < self.width - 1 and
-                1 <= nova_sala.y and nova_sala.y + nova_sala.h < self.height - 1): 
+        if not (1 <= new_room.x and new_room.x + new_room.w < self.width - 1 and
+                1 <= new_room.y and new_room.y + new_room.h < self.height - 1): 
             return False
             
         for r in self.rooms:
-            if nova_sala.intersects(r, margin=1): return False
+            if new_room.intersects(r, margin=1): return False
             
         return True
 
-    def _conectar_e_construir(self, room_origem, nova_sala, caminho_corredor):
+    def _conectar_e_construir(self, room_origem, new_room, path_corridor):
         """Efetiva a criação no mapa gravando no Grid."""
         room_origem.connected_corridors += 1
-        nova_sala.connected_corridors += 1
-        nova_sala.door_pos = caminho_corredor[-1] 
+        new_room.connected_corridors += 1
+        new_room.door_pos = path_corridor[-1] 
         
-        for tx, ty in caminho_corredor:
+        for tx, ty in path_corridor:
             self.grid[ty][tx] = Tiles.FLOOR
             self.corridors.append((tx, ty))
             
-        self._carve_room(nova_sala)
-        self.rooms.append(nova_sala)
+        self._carve_room(new_room)
+        self.rooms.append(new_room)
 
 # ==========================================
 # FUNÇÕES EXTERNAS DE UTILIDADE
@@ -164,22 +164,23 @@ class MapGenerator:
 def gerar_mapa_valido( config_topo, max_tentativas=2000):
     """Tenta várias vezes até a MapGenerator criar um layout aceitável."""
     width = config_topo.get('width', 30)
-    height = config_topo.get('height', 30)
-    alvo_salas = config_topo.get('rooms', 8)
+    height =  width
+    target_room = config_topo.get('rooms', 8)
     tam_max = config_topo.get('tam_rooms', 3)
     
     for tent in range(1, max_tentativas):
-        gen = MapGenerator(width, height, alvo_salas, tam_max)
+        gen = MapGenerator(width, height, target_room, tam_max)
         grid, rooms, corridors, leaf_rooms = gen.generate()
         
-        if _mapa_atende_requisitos(rooms, leaf_rooms, alvo_salas):
-            meta = {'rooms': rooms, 'corridors': corridors, 'leaf_rooms': leaf_rooms, 'start_room': rooms[0]}
+        if _mapa_atende_requisitos(rooms, leaf_rooms, target_room):
             free = [(x, y) for y in range(height) for x in range(width) if grid[y][x] == Tiles.FLOOR]
-            return grid, free, meta, tent
+            meta = {'rooms': rooms, 'corridors': corridors, 'leaf_rooms': leaf_rooms, 'start_room': rooms[0], 'free':free}
             
-    return None, [], None, max_tentativas
+            return grid, meta, tent
+            
+    return None, None, max_tentativas
 
-def _mapa_atende_requisitos(rooms, leaf_rooms, alvo_salas):
+def _mapa_atende_requisitos(rooms, leaf_rooms, target_room):
     tem_folhas_suficientes = len(leaf_rooms) >= 2
-    tem_tamanho_exato = len(rooms) == alvo_salas
+    tem_tamanho_exato = len(rooms) == target_room
     return tem_folhas_suficientes and tem_tamanho_exato

@@ -77,7 +77,7 @@ class AgentAvaliador:
         visited = {estado_inicial_core}
         estados_explorados = 0
 
-        while (queue and  estados_explorados < 2000000):
+        while (queue and  estados_explorados < 4000000):
             
             estados_explorados += 1
             _, g, _, x, y, hp, chaves, restantes = heapq.heappop(queue)
@@ -122,46 +122,46 @@ class AgentAvaliador:
 
 class DistribuidorItens:
 
-    def __init__(self, grid, salas, corredores, leaf_rooms):
-        self.grid = grid
-        self.salas = salas
-        self.corredores = corredores
+    def __init__(self, rooms, corridors, leaf_rooms):
+        
+        self.rooms = rooms
+        self.corridors = corridors
         self.leaf_rooms = leaf_rooms
         self.start_pos = None
         self.exit_pos = None
 
-        self.salas_para_trancar = []
-        self.salas_trancadas = []
-        self.corredores_livres = []
+        self.rooms_para_trancar = []
+        self.rooms_cofre = []
+        self.available_corridors = []
 
     def _preparar_terreno(self):
-        folhas = self.leaf_rooms.copy()
-        if len(folhas) < 2:
-            folhas = self.salas.copy()
+        leaves = self.leaf_rooms.copy()
+        if len(leaves) < 2:
+            leaves = self.rooms.copy()
 
-        random.shuffle(folhas)
-        sala_start = folhas.pop()
-        sala_exit = folhas.pop()
+        random.shuffle(leaves)
+        sala_start = leaves.pop()
+        sala_exit = leaves.pop()
         
         self.start_pos = sala_start.center()
         self.exit_pos = sala_exit.center()
 
-        # 1. Pega as folhas normais que sobraram
-        self.salas_para_trancar = [s for s in folhas if s.door_pos is not None]
+        # 1. Pega as leaves normais que sobraram
+        self.rooms_para_trancar = [s for s in leaves if s.door_pos is not None]
 
         # ---------------------------------------------------------
-        #LEMRA DE ALTERAR NOTIFICAÇÕES DE SALAS COFRES no UIRules
+        #LEMRA DE ALTERAR NOTIFICAÇÕES DE rooms COFRES no UIRules
         # Se quiser que a SAÍDA possa ter porta (Sala do Boss):
         if sala_exit.door_pos is not None:
-            self.salas_para_trancar.append(sala_exit)
+            self.rooms_para_trancar.append(sala_exit)
 
         # Se quiser que o INÍCIO possa ter porta (Prisão):
         if sala_start.door_pos is not None:
-            self.salas_para_trancar.append(sala_start)
+            self.rooms_para_trancar.append(sala_start)
         # ---------------------------------------------------------
 
-        self.corredores_livres = self.corredores.copy()
-        random.shuffle(self.corredores_livres)
+        self.available_corridors = self.corridors.copy()
+        random.shuffle(self.available_corridors)
     
     def gerar_layout(self, config_pop):
         layout = {}
@@ -183,19 +183,11 @@ class DistribuidorItens:
             if not estrategia: continue
 
             metodo_arquitetura = getattr(self, estrategia['metodo'])
-            qtd_real = qtd_pedida
-
-           # E nos IFs de segurança, separamos as lógicas de limite!
-            if id_tecnico == 'door':
-                qtd_real = min(qtd_pedida, len(self.salas_para_trancar))
-                
-            elif id_tecnico == 'key':
-                # Chaves: Precisam existir em quantidade de portas mais 1
-                qtd_real = min(qtd_pedida, limite_fisico_portas + 1)
-                
-            elif id_tecnico == 'treasure':
-                # Tesouros: O limite máximo obedece estritamente aos COFRES 
-                qtd_real = min(qtd_pedida, len(self.salas_trancadas))
+            qtd_real = LayoutRules.restricao_cofre(
+                id_tecnico, qtd_pedida, 
+                len(self.rooms_para_trancar), limite_fisico_portas, 
+                len(self.rooms_cofre)
+                )
                 
             alocados = 0
             for _ in range(qtd_real):
@@ -204,66 +196,65 @@ class DistribuidorItens:
                     layout[posicao] = sprite
                     alocados += 1
 
-            if id_tecnico == 'door':
+            if LayoutRules.eh_porta(id_tecnico):
                 limite_fisico_portas = alocados
                 if qtd_pedida > limite_fisico_portas:
                     avisos.append(f"Aviso: Limite físico excedido! Só foi possível colocar {limite_fisico_portas} portas, chaves e tesouros.")
 
         return layout, avisos
-    
 
     def _achar_posicao_porta(self, layout):
-        if self.salas_para_trancar:
-            sala = self.salas_para_trancar.pop(0)
-            pos = sala.door_pos
+        if self.rooms_para_trancar:
+            room = self.rooms_para_trancar.pop(0)
+            pos = room.door_pos
             if pos not in layout and pos != self.start_pos and pos != self.exit_pos:
 
-                # prenvine que tesouros sejam colocados na sala de incio e fim
-                if sala.center() != self.start_pos and sala.center() != self.exit_pos:  
-                    self.salas_trancadas.append(sala)
+                # prenvine que tesouros sejam colocados na room de incio e fim
+                if room.center() != self.start_pos and room.center() != self.exit_pos:  
+                    self.rooms_cofre.append(room)
                 return pos
         return None
 
     def _achar_posicao_tesouro(self, layout):
-        if self.salas_trancadas:
-            sala = self.salas_trancadas.pop(0)
-            pos = sala.center()
+        if self.rooms_cofre:
+            room = self.rooms_cofre.pop(0)
+            pos = room.center()
             if pos not in layout and pos != self.start_pos and pos != self.exit_pos:
                 return pos
         return self._achar_posicao_sala(layout)
 
     def _achar_posicao_corredor(self, layout):
-        while self.corredores_livres:
-            pos = self.corredores_livres.pop()
+        while self.available_corridors:
+            pos = self.available_corridors.pop()
             if pos not in layout and pos != self.start_pos and pos != self.exit_pos:
                 return pos
         return self._achar_posicao_aleatoria(layout)
 
     def _achar_posicao_sala(self, layout):
         # PROTEÇÃO 3: Previne falhas se a sala for minúscula e já estiver cheia
-        salas_disp = self.salas.copy()
-        random.shuffle(salas_disp)
+        rooms_disp = self.rooms.copy()
+        random.shuffle(rooms_disp)
         
-        for sala in salas_disp:
-            livres = [pos for pos in sala.get_free_tiles() if pos not in layout and pos != self.start_pos and pos != self.exit_pos]
-            if livres:
-                return random.choice(livres)       
+        for room in rooms_disp:
+            available = [pos for pos in room.get_free_tiles() if pos not in layout and pos != self.start_pos and pos != self.exit_pos]
+            if available:
+                return random.choice(available)       
         return self._achar_posicao_aleatoria(layout)
 
     def _achar_posicao_aleatoria(self, layout):
         # OTIMIZAÇÃO: Em vez de varrer o Grid inteiro, nós apenas pedimos os tiles
-        # às salas e corredores que já estão guardados na memória!
-        todos_tiles = []
-        for sala in self.salas:
-            todos_tiles.extend(sala.get_free_tiles())
-        todos_tiles.extend(self.corredores)
+        # às rooms e corridors que já estão guardados na memória!
+        all_tiles = []
+        for room in self.rooms:
+            all_tiles.extend(room.get_free_tiles())
+        all_tiles.extend(self.corridors)
         
         # Filtra os ocupados
-        tiles_livres = [pos for pos in todos_tiles if pos not in layout 
+        tiles_available = [pos for pos in all_tiles if pos not in layout 
                         and pos != self.start_pos and pos != self.exit_pos]
                         
-        if tiles_livres:
-            return random.choice(tiles_livres)
+        if tiles_available:
+            return random.choice(tiles_available)
         return None
 
 # ==========================================
@@ -271,12 +262,12 @@ class DistribuidorItens:
 # ==========================================
 
 def tentar_distribuicoes_validas(grid, meta, config_pop):
-    salas = meta.get('rooms', [])
-    corredores = meta.get('corridors', [])
+    rooms = meta.get('rooms', [])
+    corridors = meta.get('corridors', [])
     leaf_rooms = meta.get('leaf_rooms', [])
     
-    distribuidor = DistribuidorItens(grid, salas, corredores, leaf_rooms)
-    max_tentativas = 100
+    distribuidor = DistribuidorItens(rooms, corridors, leaf_rooms)
+    max_tentativas = 101
     num_visitados_totais = 0
     for tentativas in range(1, max_tentativas):
         

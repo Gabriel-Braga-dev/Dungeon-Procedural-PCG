@@ -17,15 +17,15 @@ class Cores:
     
     # Mini-mapa
     PAREDE = (60, 60, 70)
-    CHAO = (20, 20, 25)
-    HEROI = (0, 200, 255)    
-    SAIDA = (200, 0, 200)    
+    CHAO =   (20, 20, 25)
+    HEROI =  (0, 200, 255)    
+    SAIDA =  (200, 0, 200)    
     ITENS = {
-        'dragon': (255, 50, 50),   
-        'potion': (50, 255, 50),   
+        'dragon':   (255, 50, 50),   
+        'potion':   (50, 255, 50),   
         'treasure': (255, 255, 255), 
-        'door': (139, 69, 19),     
-        'key': (200, 200, 0),     
+        'door':     (139, 69, 19),     
+        'key':      (200, 200, 0),     
     }
 
 class Textos:
@@ -67,17 +67,17 @@ class UI_CONFIG:
     # 'id': {'texto apresentado' = z: 'val_inicial': X, 'range': (min, max), 'lbl_x': posX, 'lbl_w': largura}
     TOPOLOGIA_SLIDERS  = {
 
-        'width': {'texto': 'Tamanho', 'val': 30, 'range': (20, 40), 'lbl_x': 130, 'lbl_w': 100},
-        'rooms': {'texto': 'Qtd Salas', 'val': 15,  'range': (3, 25),  'lbl_x': 110, 'lbl_w': 120},
-        'tam_rooms': {'texto': 'Tam. Máx Sala','val': 3,  'range': (3, 10),  'lbl_x': 100, 'lbl_w': 130}
+        'width':     {'texto': 'Tamanho',       'val': 30, 'range': (20, 40), 'lbl_x': 130, 'lbl_w': 100},
+        'rooms':     {'texto': 'Qtd Salas',     'val': 15, 'range': (3, 25),  'lbl_x': 110, 'lbl_w': 120},
+        'tam_rooms': {'texto': 'Tam. Máx Sala', 'val': 3,  'range': (3, 10),  'lbl_x': 100, 'lbl_w': 130}
     }
 
     POPULACAO_SLIDERS = {
        
-        'dragon': {'texto': 'Dragões', 'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
-        'potion': {'texto': 'Poções', 'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
+        'dragon':   {'texto': 'Dragões',  'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
+        'potion':   {'texto': 'Poções',   'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
         'treasure': {'texto': 'Tesouros', 'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
-        'door': {'texto': 'Portas', 'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
-        'key': {'texto': 'Chaves', 'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160}
+        'door':     {'texto': 'Portas',   'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160},
+        'key':      {'texto': 'Chaves',   'val': 1, 'range': (1, 10), 'lbl_x': 110, 'lbl_w': 160}
     }
 

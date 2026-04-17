@@ -73,11 +73,9 @@ class EstadoTopologia(State):
         self.game.change_state(EstadoPopulacao(self.game))
 
     def _gerar_nova_topologia(self):
-        raw_config = self.game.ui.get_topologia_config()
-        
-        config_topo = {**raw_config, 'height': raw_config['width']} 
 
-        grid, free_tiles, meta, tent = gerar_mapa_valido(config_topo)
+        config_topo = self.game.ui.get_topologia_config()
+        grid, meta, tent = gerar_mapa_valido(config_topo)
         
         if grid:
             self.game.shared_data.update({'grid': grid, 'meta': meta})
@@ -86,16 +84,10 @@ class EstadoTopologia(State):
             self.game.shared_data.pop('e_pos', None)
             self.game.ui.mostrar_sucesso_topologia(tent)
             
-            qtd_cofres = UIRules.contar_salas_cofre_disponiveis(meta)
-            msg = f"Tiles Livres: {len(free_tiles)}  |  Salas Cofre (Máx Portas): {qtd_cofres}"
+            msg = UIRules.msg_cofres_pop(meta)
             self.game.ui.lbl_info_mapa.set_text(msg)
         else:
             self.game.ui.mostrar_erro_topologia()
-           
-
-    def _configurar_limites_fase_2(self, meta):
-        qtd_leafs, qtd_corredores, limites = UIRules.calcular_limites_fase_2(meta)
-        self.game.ui.aplicar_limites_dinamicos(qtd_leafs, qtd_corredores, limites)
 
     def update(self, time_delta):
         self.game.ui.update(time_delta)
@@ -112,7 +104,7 @@ class EstadoTopologia(State):
 class EstadoPopulacao(State):
     def enter(self):
 
-        self.game.ui.show_fase_2()
+        self.game.ui.show_fase_pop()
         self.mapa_botoes = {
             self.game.ui.btn_validar: self._executar_validacao_ia,
             self.game.ui.btn_jogar: self._iniciar_jogo,
@@ -134,13 +126,13 @@ class EstadoPopulacao(State):
     def _executar_validacao_ia(self):
 
         ui = self.game.ui
-        params = ui.get_populacao_config()
+        config_pop = ui.get_populacao_config()
         ui.preparar_validacao_ia(self.game.screen) 
 
         layout, h_pos, e_pos, tent, log = tentar_distribuicoes_validas(
             self.game.shared_data['grid'], 
             self.game.shared_data['meta'], 
-            params            
+            config_pop            
         )
         
         if layout:
@@ -175,7 +167,7 @@ class GeradorNivelState(State):
         sucesso = False
         tentativas_globais = 0
 
-        grid, _, meta, _ = gerar_mapa_valido(config_topo)
+        grid, meta, _ = gerar_mapa_valido(config_topo)
 
         while not sucesso and tentativas_globais < 6: 
 
@@ -225,9 +217,9 @@ class JogandoState(State):
         factory.preparar_jogo(self.game.shared_data)
         
         self.move_sys, self.render_sys = factory.preparar_sistemas(
-            self.game.shared_data, 
+            self.game.ui, 
             self.game.screen, 
-            self.game.ui
+            self.game.shared_data
         )
 
     def handle_event(self, event):

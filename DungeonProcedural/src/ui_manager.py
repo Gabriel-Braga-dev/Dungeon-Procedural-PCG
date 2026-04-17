@@ -9,8 +9,8 @@ from src.constants import Cores, Textos, Layout, UI_CONFIG
 class GameUIManager:
     def __init__(self, screen_size):
         self.manager = pygame_gui.UIManager(screen_size)
-        self.elementos_fase_1 = []
-        self.elementos_fase_2 = []
+        self.elementos_fase_top = []
+        self.elementos_fase_pop = []
         self.mapa_eventos_sliders = {}
 
         self.labels_topologia = {}
@@ -85,9 +85,9 @@ class GameUIManager:
 
     def preparar_fase_criativo(self):
         self.limpar_interface()
-        self._build_fase_1()
-        self._build_fase_2()
-        self.show_fase_1()
+        self._build_fase_top()
+        self._build_fase_pop()
+        self.show_fase_top()
 
     def _load_legend_sprites(self):
         loader = SpriteLoader()
@@ -98,14 +98,14 @@ class GameUIManager:
     # ==========================================
     
      # ESTADO TOPOLOGIA
-    def show_fase_1(self):
-        for el in self.elementos_fase_2: el.hide()
-        for el in self.elementos_fase_1: el.show()
+    def show_fase_top(self):
+        for el in self.elementos_fase_pop: el.hide()
+        for el in self.elementos_fase_top: el.show()
         self.btn_avancar.hide() 
 
-    def _build_fase_1(self):
+    def _build_fase_top(self):
         self.lbl_titulo_topo = self._criar_label((150, 30), (300, 30), Textos.TOPO_TITULO)
-        self.elementos_fase_1 = [self.lbl_titulo_topo]
+        self.elementos_fase_top = [self.lbl_titulo_topo]
 
         y_offset = 70
         for id_tec, cfg in UI_CONFIG.TOPOLOGIA_SLIDERS.items():
@@ -115,7 +115,7 @@ class GameUIManager:
             self.labels_topologia[id_tec] = lbl
             self.sliders_topologia[id_tec] = sld
             self.prefixos_topologia[id_tec] = cfg['texto']
-            self.elementos_fase_1.extend([lbl, sld])
+            self.elementos_fase_top.extend([lbl, sld])
             self.mapa_eventos_sliders[sld] = self._atualizar_texto_slider_topologia
             y_offset += 40
 
@@ -123,7 +123,7 @@ class GameUIManager:
         self.lbl_tentativas_topo = self._criar_label((100, y_offset + 60), (400, 30), "")
         self.btn_avancar = self._criar_botao((200, y_offset + 100), (Layout.BTN_LARGURA, Layout.BTN_ALTURA_PEQ), Textos.TOPO_BTN_AVANCAR)
         self.btn_avancar.hide() 
-        self.elementos_fase_1.extend([self.btn_gerar_topologia, self.lbl_tentativas_topo, self.btn_avancar])
+        self.elementos_fase_top.extend([self.btn_gerar_topologia, self.lbl_tentativas_topo, self.btn_avancar])
 
     def mostrar_erro_topologia(self):
         self.lbl_tentativas_topo.set_text("🛑 CRASH EVITADO. Tamanho/Salas inviável!")
@@ -146,14 +146,14 @@ class GameUIManager:
 
     # ESTADO POPULAÇAO
 
-    def show_fase_2(self):
-        for el in self.elementos_fase_1: el.hide()
-        for el in self.elementos_fase_2: el.show()
+    def show_fase_pop(self):
+        for el in self.elementos_fase_top: el.hide()
+        for el in self.elementos_fase_pop: el.show()
 
-    def _build_fase_2(self):
+    def _build_fase_pop(self):
         self.lbl_titulo_pop = self._criar_label((150, 5), (300, 30), Textos.POP_TITULO)
         self.lbl_info_mapa = self._criar_label((50, 30), (500, 30), "Tiles Livres: 0")
-        self.elementos_fase_2 = [self.lbl_titulo_pop, self.lbl_info_mapa]
+        self.elementos_fase_pop = [self.lbl_titulo_pop, self.lbl_info_mapa]
         
         y_offset = 60
 
@@ -165,7 +165,7 @@ class GameUIManager:
             self.labels_populacao[id_tec] = lbl
             self.sliders_populacao[id_tec] = sld
             self.prefixos_população[id_tec] = cfg['texto']
-            self.elementos_fase_2.extend([lbl, sld]) 
+            self.elementos_fase_pop.extend([lbl, sld]) 
             self.mapa_eventos_sliders[sld] = self._sincronizar_sliders_automaticamente
             
             y_offset += 30
@@ -182,16 +182,16 @@ class GameUIManager:
         )
 
         self.btn_jogar.disable()
-        self.elementos_fase_2.extend([self.lbl_analise, self.btn_validar, self.btn_jogar, self.btn_voltar, self.txt_log])
+        self.elementos_fase_pop.extend([self.lbl_analise, self.btn_validar, self.btn_jogar, self.btn_voltar, self.txt_log])
 
     def _sincronizar_sliders_automaticamente(self, evento_slider):
-        nome_alterado = next((nome for nome, sld in self.sliders_populacao.items() if evento_slider == sld), None)
-        if not nome_alterado: return
+        id_tec_alterado = next((id_tec for id_tec, sld in self.sliders_populacao.items() if evento_slider == sld), None)
+        if not id_tec_alterado: return
 
 
         valor_tentado = int(evento_slider.get_current_value())
-        valores_atuais = {n: int(s.get_current_value()) for n, s in self.sliders_populacao.items()}
-        atualizacoes = UIRules.calcular_sincronizacao_populacao(nome_alterado, valor_tentado, valores_atuais)
+        valores_atuais = {id_tec: int(sld.get_current_value()) for id_tec, sld in self.sliders_populacao.items()}
+        atualizacoes = UIRules.calcular_sincronizacao_populacao(id_tec_alterado, valor_tentado, valores_atuais)
 
         for id_tec, novo_valor in atualizacoes.items():
             if id_tec in self.sliders_populacao:

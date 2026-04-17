@@ -9,16 +9,17 @@ class UIRules:
     def contar_salas_cofre_disponiveis(meta):
         """Isola a lógica de contagem de salas folha que podem ser trancadas."""
         leaf_rooms = meta.get('leaf_rooms', [])
-        # MODIFICAR AQUI QUANDO DECIDIR SE COFRES NO INIFIO/FIM ATÉ - 2
+        # _preparar_terreno na classe DistribuirItens em AI_validator.py
+        # MODIFICAR AQUI QUANDO DECIDIR SE COFRES NO INICIO/FIM  EM ATÉ - 2 
         # NO MOMENTO TANTO INICIO QUANTO FIM SÃO TRANCAVEIS 
         return len([s for s in leaf_rooms if getattr(s, 'door_pos', None) is not None])
-
-    @staticmethod
-    def calcular_limites_fase_2(meta):
-        salas_reais = [r for r in meta['leaf_rooms'] if r != meta['start_room']]
-        qtd_leafs, qtd_corredores = len(salas_reais), len(meta['corridors'])
-        return qtd_leafs, qtd_corredores, {'salas': max(1, qtd_leafs), 'corredores': max(1, qtd_corredores)}
-
+    
+    def msg_cofres_pop (meta):
+        qtd_cofres = UIRules.contar_salas_cofre_disponiveis(meta)
+        free_tiles = meta.get('free',[])
+        msg = f"Tiles Livres: {len(free_tiles)}  |  Salas Cofre (Máx Portas): {qtd_cofres}"
+        return msg
+    
     # REGRAS POPULAÇÃO
 
     @staticmethod
@@ -27,8 +28,8 @@ class UIRules:
         atualizacoes = {nome_alterado: valor_tentado}
 
         estrategias = {
-            'door':   lambda v, _: {'key': v , 'Treasure': v},
-            'key':   lambda v, _: {'door': v , 'Treasure': v },
+            'door':   lambda v, _: {'key': v , 'treasure': v},
+            'key':   lambda v, _: {'door': v , 'treasure': v },
             'treasure': lambda v, _: {'door': v, 'key': v },
             'dragon': lambda v, _: {'potion': v },
             'potion':   lambda v, _: {'dragon': v }
@@ -42,15 +43,10 @@ class UIRules:
     @staticmethod
     def avaliar_risco_ia(config_populacao):
 
-        dragoes = config_populacao.get('dragon', 0)
-        pocoes = config_populacao.get('potion', 0)
-        portas = config_populacao.get('door', 0)
-        chaves = config_populacao.get('key', 0)
+        tipos_relevantes = AIRules.obter_tipos_relevantes_ia() 
+        total_rastreados = sum(config_populacao.get(tipo, 0) for tipo in tipos_relevantes)
         
-        # Combinatória cresce exponencialmente baseado no número de itens interativos
-        total_rastreados = dragoes + pocoes + portas + chaves 
         combinacoes = 2 ** total_rastreados
-        
         seguro = total_rastreados <= 24
         
         if combinacoes >= 1000000000:
@@ -214,6 +210,7 @@ class AIRules:
         if regra:
             return regra(hp, chaves)
         return False, True, hp, chaves # Fallback
+    
    
 class LayoutRules:
 
@@ -225,6 +222,26 @@ class LayoutRules:
         'potion':   {'prioridade': 4, 'metodo': '_achar_posicao_corredor'}
     }
 
+    def restricao_cofre(id_tec, qtd_pedida, rooms_para_trancar, limite_fisico_porta, rooms_cofre):
+        if id_tec == 'door':
+            qtd_real = min (qtd_pedida, rooms_para_trancar)
+                
+        elif id_tec == 'key':
+            # Chaves: Precisam existir em quantidade de portas mais 1
+            qtd_real = min (qtd_pedida, limite_fisico_porta + 1)
+                
+        elif id_tec == 'treasure':
+            # Tesouros: O limite máximo obedece estritamente aos COFRES 
+            qtd_real = min (qtd_pedida, rooms_cofre)
+        else:
+            qtd_real = qtd_pedida
+
+        return qtd_real
+    
+    def eh_porta(id_tec):
+        if id_tec == 'door':
+            return True
+        return False
 
 
 class LevelBalancer:
@@ -233,8 +250,8 @@ class LevelBalancer:
         self.regras_populacao = {}
         self._configurar_regras_base()
 
-    def registrar_regra(self, param_interno, regra_func):
-        self.regras_populacao[param_interno] = regra_func
+    def registrar_regra(self, id_tec_interno, regra_func):
+        self.regras_populacao[id_tec_interno] = regra_func
 
     def _configurar_regras_base(self):
         # Economia estrita: 
@@ -250,18 +267,17 @@ class LevelBalancer:
     def calcular_dificuldade(self, nivel):
 
         tam_map = min(40, 20 + (nivel//2))
-        num_salas =  min(25, 3 + (nivel//2))
+        num_rooms =  min(25, 3 + (nivel//2))
 
         config_topo = {
             'width': tam_map,
-            'height': tam_map,
-            'rooms': num_salas,
+            'rooms': num_rooms,
             'tam_rooms': 3
         }
 
         config_pop = {}
-        for param, regra in self.regras_populacao.items():
-            config_pop[param] = regra(nivel, config_pop)
+        for id_tec, regra in self.regras_populacao.items():
+            config_pop[id_tec] = regra(nivel, config_pop)
 
         self._aplicar_seguranca(config_pop)
 
@@ -269,13 +285,14 @@ class LevelBalancer:
 
     def _aplicar_seguranca(self, config_pop):
         
-        total_relevante = config_pop.get('dragon', 0) + config_pop.get('potion', 0) + config_pop.get('door', 0) + config_pop.get('key', 0) 
-        max_relevantes = 18
+        tipos_relevantes = AIRules.obter_tipos_relevantes_ia() 
+        total_rastreados = sum(config_pop.get(id_tec, 0) for id_tec in tipos_relevantes)
+        max_relevantes = 20
      
-        if total_relevante > max_relevantes:
-            config_pop['door'] = max(1, config_pop.get('door', 2) -1)
-            config_pop['key'] = max(1, config_pop.get('key', 2) - 1)
-            config_pop['treasure'] = max(1, config_pop.get('treasure', 2) - 1)
+        if total_rastreados > max_relevantes:
+            for id_tec in tipos_relevantes:
+                config_pop[id_tec] = max(1, config_pop.get(id_tec, 0) - 1)
+            print(config_pop)
 
     def andar_seguranca(self, config_topo, config_pop, tentativas_globais):
 
