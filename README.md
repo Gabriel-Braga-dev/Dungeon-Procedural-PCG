@@ -49,4 +49,5 @@ Para testar o gerador e o Agente Avaliador na sua máquina, siga os passos abaix
    - Aperte P para pausar o jogo, caso esteja pausado o esc te colocará para criar um novo mapa
    - Durante o jogo se apertar N o jogo avançará de nível automaticamente
    - Caso fique sem ter o que fazer aperte P e reinicie, uma hora consiguira resolver o desafio
+   - Use o scroll do mouse para alterar o zoom
 
